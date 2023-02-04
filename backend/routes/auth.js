@@ -63,5 +63,41 @@ router.post('/createuser' ,
   }
   
 });
-//authenticate user 
+//authenticate user login
+  router.post('/login' , [
+    body('email' , 'Enter a valid email').isEmail(), 
+    body('password' , 'Password canot be blank').exists(), 
+  ] , async(req, res)=>{
+    const errors = validationResult(req);
+    // reutrn error if any
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const {email , password} = req.body;
+    try {
+      let user = await User.findOne({email});
+      if(!user){
+        return res.status(400).json({error:"Try login with correct credentials"});
+      }
+      const passwordCompare = await bcrypt.compare(password, user.password);
+      if(!passwordCompare){
+        
+        return res.status(400).json({error:"Try login with correct credentials"});
+      }
+
+      const data = {
+        user:{
+          id: user.id
+        }
+      }
+      const authtoken = jwt.sign(data, JWT_SCRRET);
+      res.json({authtoken});
+
+    } catch (error) {
+      console.error(error.message);
+      res.status(500).send("Internal Server Error");
+    }
+
+  })
 module.exports = router;
